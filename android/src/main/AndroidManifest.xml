@@ -1,4 +1,8 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.reactnativeoverlayapps">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.reactnativeoverlayapps">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
+    <application>
+        <service android:name="com.reactnativeoverlayapps.OverlayAppsService" android:enabled="true" android:exported="true"/>
+    </application>
 </manifest>
