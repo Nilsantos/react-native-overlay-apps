@@ -1,12 +1,27 @@
 package com.reactnativeoverlayapps;
 
+import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.graphics.PixelFormat;
+import android.net.Uri;
 import android.os.Build;
+import android.os.IBinder;
+import android.provider.Settings;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -14,22 +29,33 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.module.annotations.ReactModule;
 
+
 @ReactModule(name = OverlayAppsModule.NAME)
-public class OverlayAppsModule extends ReactContextBaseJavaModule {
+public class OverlayAppsModule extends ReactContextBaseJavaModule implements ActivityEventListener {
+    private static final int DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE = 1222;
     public static final String NAME = "OverlayApps";
+    private ReactApplicationContext reactContext;
+    private ServiceConnection mServiceConnection;
+    OverlayAppsService mService;
+    Intent serviceIntent;
 
-    static final String ACTION_FOREGROUND_SERVICE_START = "com.voximplant.foregroundservice.service_start";
-    static final String ACTION_FOREGROUND_SERVICE_STOP = "com.voximplant.foregroundservice.service_stop";
+    @Override
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+      if (requestCode == DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE) {
+        if (resultCode == activity.RESULT_OK) {
+          startFloatingWidgetService();
+        }
+      }
+    }
 
-    static final String NOTIFICATION_CONFIG = "com.voximplant.foregroundservice.notif_config";
+    @Override
+    public void onNewIntent(Intent intent) {
 
-    static final String ERROR_INVALID_CONFIG = "ERROR_INVALID_CONFIG";
-    static final String ERROR_SERVICE_ERROR = "ERROR_SERVICE_ERROR";
-    static final String ERROR_ANDROID_VERSION = "ERROR_ANDROID_VERSION";
-
+    }
 
     public OverlayAppsModule(ReactApplicationContext reactContext) {
         super(reactContext);
+        this.reactContext = reactContext;
     }
 
     @Override
@@ -39,68 +65,53 @@ public class OverlayAppsModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void createNotificationChannel(ReadableMap channelConfig, Promise promise) {
-      if (channelConfig == null) {
-        promise.reject(ERROR_INVALID_CONFIG, "VIForegroundService: Channel config is invalid");
-        return;
-      }
-      NotificationHelper.getInstance(getReactApplicationContext()).createNotificationChannel(channelConfig, promise);
+    public void showOverlay() {
+      createFloatingWidget();
     }
 
     @ReactMethod
-    public void showOverlay(ReadableMap notificationConfig, Promise promise) {
-      if (notificationConfig == null) {
-        promise.reject(ERROR_INVALID_CONFIG, "VIForegroundService: Notification config is invalid");
-        return;
-      }
+    public void hideOverlay() {
+      this.reactContext.unbindService(mServiceConnection);
+      this.reactContext.stopService(serviceIntent);
+      serviceIntent = null;
+    }
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        if (!notificationConfig.hasKey("channelId")) {
-          promise.reject(ERROR_INVALID_CONFIG, "VIForegroundService: channelId is required");
-          return;
-        }
-      }
-
-      if (!notificationConfig.hasKey("id")) {
-        promise.reject(ERROR_INVALID_CONFIG , "VIForegroundService: id is required");
-        return;
-      }
-
-      if (!notificationConfig.hasKey("icon")) {
-        promise.reject(ERROR_INVALID_CONFIG, "VIForegroundService: icon is required");
-        return;
-      }
-
-      if (!notificationConfig.hasKey("title")) {
-        promise.reject(ERROR_INVALID_CONFIG, "VIForegroundService: title is reqired");
-        return;
-      }
-
-      if (!notificationConfig.hasKey("text")) {
-        promise.reject(ERROR_INVALID_CONFIG, "VIForegroundService: text is required");
-        return;
-      }
-
-      Intent intent = new Intent(getReactApplicationContext(), OverlayAppsService.class);
-      intent.setAction(ACTION_FOREGROUND_SERVICE_START);
-      intent.putExtra(NOTIFICATION_CONFIG, Arguments.toBundle(notificationConfig));
-      ComponentName componentName = getReactApplicationContext().startService(intent);
-      if (componentName != null) {
-        promise.resolve(null);
-      } else {
-        promise.reject(ERROR_SERVICE_ERROR, "VIForegroundService: Foreground service is not started");
+    @ReactMethod
+    public void setText(String text) {
+      if(mService != null) {
+        Log.i("text", text);
+        mService.setText(text);
       }
     }
 
-  @ReactMethod
-  public void hideOverlay(Promise promise) {
-    Intent intent = new Intent(getReactApplicationContext(), OverlayAppsService.class);
-    intent.setAction(ACTION_FOREGROUND_SERVICE_STOP);
-    boolean stopped = getReactApplicationContext().stopService(intent);
-    if (stopped) {
-      promise.resolve(null);
-    } else {
-      promise.reject(ERROR_SERVICE_ERROR, "VIForegroundService: Foreground service failed to stop");
+    public void createFloatingWidget() {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this.getReactApplicationContext())) {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + this.reactContext.getPackageName()));
+        reactContext.startActivityForResult(intent, DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE, null);
+      } else {
+        startFloatingWidgetService();
+      }
+    }
+
+    private void startFloatingWidgetService() {
+      if(serviceIntent == null) {
+        mServiceConnection = new ServiceConnection() {
+          @Override
+          public void onServiceConnected(ComponentName name, IBinder service) {
+            OverlayAppsService.LocalBinder mLocalBinder = (OverlayAppsService.LocalBinder) service;
+            mService = mLocalBinder.getInstance();
+          }
+
+          @Override
+          public void onServiceDisconnected(ComponentName name) {
+
+          }
+        };
+
+        serviceIntent = new Intent(this.reactContext, OverlayAppsService.class);
+        this.reactContext.bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        this.reactContext.startService(serviceIntent);
+      }
     }
   }
-}
+

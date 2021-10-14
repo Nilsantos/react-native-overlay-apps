@@ -1,36 +1,30 @@
 import React, { useState } from 'react';
 
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import OverlayApps, { IChannelConfig } from 'react-native-overlay-apps';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
+import OverlayApps from 'react-native-overlay-apps';
 
 export default function App() {
   const [isShowing, setIsShowing] = useState(false);
+  const [text, setText] = useState('');
 
-  const startOverlay = async () => {
-    const channelConfig: IChannelConfig = {
-      id: 'channelId',
-      name: 'Channel name',
-      description: 'Channel description',
-      importance: 3,
-      enableVibration: false,
-    };
-
-    const notificationConfig = {
-      channelId: 'channelId',
-      id: 3456,
-      title: 'Title',
-      text: 'Some text',
-      icon: 'ic_icon',
-    };
-
-    await OverlayApps.createNotificationChannel(channelConfig);
-    await OverlayApps.showOverlay(notificationConfig);
+  const startOverlay = () => {
+    OverlayApps.showOverlay();
     setIsShowing(true);
   };
 
-  const stopOverlay = async () => {
-    await OverlayApps.hideOverlay();
+  const stopOverlay = () => {
+    OverlayApps.hideOverlay();
     setIsShowing(false);
+  };
+
+  const changeOverlayText = () => {
+    OverlayApps.setText(text);
   };
 
   return (
@@ -45,7 +39,15 @@ export default function App() {
         </TouchableOpacity>
       )}
 
-      <Text>Result</Text>
+      <TextInput
+        style={styles.input}
+        onChangeText={(t) => setText(t)}
+        value={text}
+      />
+
+      <TouchableOpacity onPress={changeOverlayText}>
+        <Text>Change overlay text</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -55,5 +57,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
   },
 });
