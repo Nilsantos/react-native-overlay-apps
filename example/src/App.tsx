@@ -15,7 +15,6 @@ export default function App() {
 
   const startOverlay = async () => {
     const hasPermission = await OverlayApps.askPermission();
-    console.log(hasPermission);
     if (hasPermission) {
       OverlayApps.showOverlay();
       setIsShowing(true);
@@ -35,11 +34,11 @@ export default function App() {
     <View style={styles.container}>
       {isShowing ? (
         <TouchableOpacity style={styles.button} onPress={stopOverlay}>
-          <Text style={styles.text}>Parar overlay</Text>
+          <Text style={styles.text}>Stop overlay</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.button} onPress={startOverlay}>
-          <Text style={styles.text}>Iniciar overlay</Text>
+          <Text style={styles.text}>Start overlay</Text>
         </TouchableOpacity>
       )}
 
