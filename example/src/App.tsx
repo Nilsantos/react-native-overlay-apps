@@ -13,9 +13,13 @@ export default function App() {
   const [isShowing, setIsShowing] = useState(false);
   const [text, setText] = useState('');
 
-  const startOverlay = () => {
-    OverlayApps.showOverlay();
-    setIsShowing(true);
+  const startOverlay = async () => {
+    const hasPermission = await OverlayApps.askPermission();
+    console.log(hasPermission);
+    if (hasPermission) {
+      OverlayApps.showOverlay();
+      setIsShowing(true);
+    }
   };
 
   const stopOverlay = () => {
@@ -30,12 +34,12 @@ export default function App() {
   return (
     <View style={styles.container}>
       {isShowing ? (
-        <TouchableOpacity onPress={stopOverlay}>
-          <Text>Parar overlay</Text>
+        <TouchableOpacity style={styles.button} onPress={stopOverlay}>
+          <Text style={styles.text}>Parar overlay</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity onPress={startOverlay}>
-          <Text>Iniciar overlay</Text>
+        <TouchableOpacity style={styles.button} onPress={startOverlay}>
+          <Text style={styles.text}>Iniciar overlay</Text>
         </TouchableOpacity>
       )}
 
@@ -45,8 +49,8 @@ export default function App() {
         value={text}
       />
 
-      <TouchableOpacity onPress={changeOverlayText}>
-        <Text>Change overlay text</Text>
+      <TouchableOpacity style={styles.button} onPress={changeOverlayText}>
+        <Text style={styles.text}>Change overlay text</Text>
       </TouchableOpacity>
     </View>
   );
@@ -57,11 +61,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 40,
+  },
+  button: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#006400',
+    borderRadius: 10,
+    width: '100%',
+    height: 40,
+  },
+  text: {
+    color: '#FFFFFF',
   },
   input: {
+    marginTop: 50,
+    width: '100%',
     height: 40,
     margin: 12,
     borderWidth: 1,
+    borderRadius: 10,
     padding: 10,
   },
 });

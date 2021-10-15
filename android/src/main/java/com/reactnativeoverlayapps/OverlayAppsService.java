@@ -1,21 +1,19 @@
 package com.reactnativeoverlayapps;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+
+import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
 
 public class OverlayAppsService extends Service {
   IBinder binder = new LocalBinder();
@@ -58,14 +56,19 @@ public class OverlayAppsService extends Service {
 
   public void setText(String text) {
     if(linearLayout != null && textView != null) {
-      textView.setText(text);
+      runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          textView.setText(text);
+        }
+      });
     }
   }
 
   private void addFloatingWidgetView(LayoutInflater inflater) {
     if(linearLayout == null)
     {
-      linearLayout = (LinearLayout) inflater.inflate(R.layout.floating_widget_layout, null);
+      linearLayout = inflater.inflate(R.layout.floating_widget_layout, null);
 
       final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,

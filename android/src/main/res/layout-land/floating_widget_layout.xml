@@ -5,7 +5,7 @@
   android:orientation="vertical">
 
   <FrameLayout
-    android:layout_width="360dp"
+    android:layout_width="500dp"
     android:layout_height="wrap_content"
     android:layout_marginLeft="5dp"
     android:layout_marginTop="5dp"
@@ -17,7 +17,7 @@
 
     <TextView
       android:id="@+id/textView"
-      android:layout_width="350dp"
+      android:layout_width="490dp"
       android:layout_height="wrap_content"
       android:text=""
       android:textColor="#FFFFFF"

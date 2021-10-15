@@ -5,19 +5,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -26,7 +18,6 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.module.annotations.ReactModule;
 
 
@@ -36,6 +27,7 @@ public class OverlayAppsModule extends ReactContextBaseJavaModule implements Act
     public static final String NAME = "OverlayApps";
     private ReactApplicationContext reactContext;
     private ServiceConnection mServiceConnection;
+    Promise askPermissionPromise;
     OverlayAppsService mService;
     Intent serviceIntent;
 
@@ -43,7 +35,10 @@ public class OverlayAppsModule extends ReactContextBaseJavaModule implements Act
     public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
       if (requestCode == DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE) {
         if (resultCode == activity.RESULT_OK) {
-          startFloatingWidgetService();
+          this.askPermissionPromise.resolve(true);
+        }
+        else {
+          this.askPermissionPromise.resolve(false);
         }
       }
     }
@@ -62,6 +57,19 @@ public class OverlayAppsModule extends ReactContextBaseJavaModule implements Act
     @NonNull
     public String getName() {
         return NAME;
+    }
+
+    @ReactMethod
+    public void askPermission(Promise promise) {
+      this.askPermissionPromise = promise;
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this.getReactApplicationContext())) {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + this.reactContext.getPackageName()));
+        reactContext.startActivityForResult(intent, DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE, null);
+      }
+      else {
+        promise.resolve(true);
+      }
     }
 
     @ReactMethod
@@ -85,10 +93,7 @@ public class OverlayAppsModule extends ReactContextBaseJavaModule implements Act
     }
 
     public void createFloatingWidget() {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this.getReactApplicationContext())) {
-        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + this.reactContext.getPackageName()));
-        reactContext.startActivityForResult(intent, DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE, null);
-      } else {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this.getReactApplicationContext())) {
         startFloatingWidgetService();
       }
     }

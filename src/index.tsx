@@ -4,6 +4,7 @@ type OverlayAppsType = {
   showOverlay: () => void;
   hideOverlay: () => void;
   setText: (text: string) => void;
+  askPermission: () => Promise<boolean>;
 };
 
 const { OverlayApps } = NativeModules;
